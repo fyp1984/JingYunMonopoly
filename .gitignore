@@ -1,0 +1,9 @@
+# 构建产物：随时可用 ./tools/build_android_webview.sh 重建，不进版本库
+android/build/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc

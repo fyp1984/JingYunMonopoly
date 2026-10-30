@@ -1,0 +1,626 @@
+/* board.css —— 京韵大富翁 · 11×11 棋盘（京城印记皮肤）
+ *
+ * 几何口径 1:1 来自 gen_playkit_jingcheng.py::cell_geom：
+ *   格 0 在右下角，沿底边向左、逆时针绕行；四角 0 / -90 / 180 / 90。
+ * 网格坐标由 src/ui/board.js 以内联 grid-column / grid-row 落到每格上，
+ * 本文件只负责「长什么样」。
+ *
+ * 尺寸策略：棋盘是正方形，边长为
+ *   min(可视宽度 - 侧栏，可视高度 - 页头/控制条)
+ * 这两个值由 src/ui/board.js::fitBoard() 量出后写成两个自定义属性：
+ *   --bw  棋盘外框边长（px）
+ *   --u   棋盘内边长度的 1%（px）—— 格内一切尺寸都按它等比缩放
+ * 之所以不用容器查询单位 cqw：本机终端 WebView 为 101，cqw 自 Chrome 105 才有，
+ * 整条声明会被判为非法丢弃，导致字号退化为继承值（这就是「字体过大、布局错乱」的根因）。
+ * 变量法在所有浏览器上都成立，且同样做到「随棋盘等比缩放，不写死 px」。
+ */
+
+.board {
+  /* 预置值：JS 量测前先有一份可用的兜底，避免首帧闪一下 */
+  --u: 1vmin;
+  --bw: 100%;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  grid-template-rows: repeat(11, 1fr);
+  gap: 2px;
+  padding: 6px;
+
+  aspect-ratio: 1 / 1;
+  /* .boardwrap 是尺寸容器：棋盘取「可用宽 / 可用高」的较小边，永远正方形且居中 */
+  width: var(--bw);
+  max-width: 100%;
+
+  background:
+    radial-gradient(circle at 30% 18%, #FCF6E9 0%, #EFE3CB 72%);
+  border: 2px solid var(--jc-gold);
+  border-radius: 14px;
+  box-shadow:
+    0 20px 44px rgba(74, 35, 17, .18),
+    inset 0 0 0 6px rgba(255, 255, 255, .4);
+}
+
+/* ================================================================
+   格子
+   ================================================================ */
+.cell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #FFFDF8;
+  border: 1px solid rgba(156, 122, 60, .22);
+  transition: box-shadow .18s, transform .18s;
+}
+
+.cellin {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  gap: calc(var(--u) * .35);
+  padding: calc(var(--u) * .45);
+  transform-origin: center center;
+}
+/* 只有「纸样」朝向才还原印刷旋转；正向（默认）全部可读 */
+.board[data-orient="paper"] .cellin { transform: rotate(var(--rot, 0deg)); }
+
+.cell-art {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  object-fit: contain;
+  border-radius: 2px;
+}
+/* 机会/命运/寻宝：卡背铺满，视觉上像一摞牌 */
+.cell.t-plain .cell-art { object-fit: cover; border-radius: 3px; }
+/* 四角：图标居中留白 */
+.cell.is-corner .cell-art { object-fit: contain; padding: 4%; }
+.cell.is-corner { background: #FBF1DE; }
+
+/* 分区 / 类型色条（纹样由 pat-* 提供） */
+.cell-strip {
+  flex: none;
+  height: calc(var(--u) * 1.5);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px;
+  color: #fff;
+  font-size: calc(var(--u) * 1.02);
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .28);
+}
+
+/* 分区纹样（与纸样一致） */
+.pat-brick {
+  background-color: var(--zc, var(--jc-primary));
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .16) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .16) 0 1px, transparent 1px 9px);
+}
+.pat-wave {
+  background-color: var(--zc, var(--jc-accent));
+  background-image: repeating-linear-gradient(115deg,
+    rgba(255, 255, 255, .20) 0 2px, transparent 2px 6px);
+}
+.pat-dot {
+  background-color: var(--zc, #4A7B4E);
+  background-image: radial-gradient(rgba(255, 255, 255, .34) 1px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+.pat-diag {
+  background-color: var(--zc, #3D4F68);
+  background-image: repeating-linear-gradient(45deg,
+    rgba(255, 255, 255, .18) 0 2px, transparent 2px 7px);
+}
+.pat-grid {
+  background-color: var(--zc, var(--jc-gold));
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .18) 1px, transparent 1px);
+  background-size: 5px 5px;
+}
+.pat-hline {
+  background-color: var(--zc, #6B5A42);
+  background-image: repeating-linear-gradient(0deg,
+    rgba(255, 255, 255, .20) 0 1px, transparent 1px 4px);
+}
+.pat-solid { background-color: var(--zc, var(--jc-ink)); }
+
+/* 名称 + 价格
+   地名最长 13 字（如「国贸三期A座(中国尊)」），一行放不下：
+   名称占满整格、最多两行截断，价格另起一行右对齐。 */
+.cell-label {
+  flex: none;
+  display: flex; flex-direction: column; gap: calc(var(--u) * .08);
+  line-height: 1.12;
+}
+.cell-label .nm {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-all;
+  font-size: calc(var(--u) * 1.02);
+  font-weight: 800;
+  color: var(--jc-ink);
+}
+.cell-label .pr {
+  align-self: flex-end;
+  font-size: calc(var(--u) * .95);
+  font-weight: 900;
+  color: var(--jc-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* 归属 */
+.cell-owner { position: absolute; left: 0; top: 0; pointer-events: none; }
+.owner-chip {
+  display: block;
+  padding: calc(var(--u) * .12) calc(var(--u) * .7);
+  border-radius: 0 0 6px 0;
+  color: #fff;
+  font-size: calc(var(--u) * .98);
+  font-weight: 800;
+  line-height: 1.5;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+}
+
+/* 棋子 */
+.cell-pawns {
+  position: absolute; right: calc(var(--u) * .4); bottom: calc(var(--u) * .4);
+  display: flex; gap: calc(var(--u) * .3); flex-wrap: wrap; justify-content: flex-end;
+  max-width: 90%;
+  pointer-events: none;
+}
+/* 棋子：座位配色圆环 + 京味棋子立绘（糖葫芦 / 鸽哨 / 脸谱 / 人力黄包车） */
+.pawn {
+  width: calc(var(--u) * 2.7); height: calc(var(--u) * 2.7);
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: block;
+  object-fit: contain;
+  background: radial-gradient(circle at 50% 38%, #FFFDF7, #EFE6D4);
+  border: calc(var(--u) * .34) solid var(--sc, #E63900);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .32);
+  animation: jym-pop .25s ease-out;
+}
+/* 素材缺失时的字符棋子（回退） */
+.pawn-fallback {
+  display: grid; place-items: center;
+  color: #fff;
+  font-size: calc(var(--u) * 1.15);
+  font-weight: 900;
+  line-height: 1;
+  border: 1.5px solid rgba(255, 255, 255, .92);
+}
+@keyframes jym-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* 归属地块：内描边用座位色 */
+.cell.owned { box-shadow: inset 0 0 0 2px var(--oc, var(--jc-gold)); }
+
+/* 当前落点 */
+.cell.active {
+  z-index: 3;
+  box-shadow: 0 0 0 2.5px var(--brand-orange), 0 0 18px rgba(255, 152, 0, .6);
+  transform: scale(1.06);
+}
+
+/* ================================================================
+   中心区（照 R3 优化稿版式重做）：
+   标题居上 → 常驻骰子盘 → 四摞卡位横排 → 季节盘；底层铺 R3 中心插画（放大）。
+   活数据（轮次/当前玩家/牌堆余量/当季）照常实时渲染。
+   ================================================================ */
+.center {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 标题 / 骰子盘 / 四摞卡位 / 季节盘 */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: calc(var(--u) * 1.1);
+  padding: calc(var(--u) * 1.4);
+  border-radius: 10px;
+  border: 1px solid rgba(156, 122, 60, .35);
+  background: radial-gradient(circle at 50% 34%, #FFFDF7 0%, #F3E9D5 78%);
+  overflow: hidden;
+}
+
+/* 底层插画：R3 原图 2048×1152（16:9），按中心宽度的 96% 铺开 */
+.center-art {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 96%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  opacity: .42;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 标题层（居上） */
+.center-head {
+  grid-column: 1 / 5; grid-row: 1;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: calc(var(--u) * .25); text-align: center;
+}
+.center-head .ct-main {
+  font-size: calc(var(--u) * 2.5); font-weight: 900; line-height: 1.08;
+  letter-spacing: .08em; color: var(--jc-primary);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .8);
+}
+.center-head .ct-sub {
+  font-size: calc(var(--u) * 1.1); font-weight: 800; letter-spacing: .3em;
+  color: var(--jc-gold);
+}
+.center-turn {
+  margin-top: calc(var(--u) * .5);
+  display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * .8);
+  font-size: calc(var(--u) * 1.1); font-weight: 800; color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+.center-turn .ct-who {
+  color: #fff; border-radius: 999px; padding: .18em .95em;
+  font-size: calc(var(--u) * 1.05); font-weight: 900;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .22);
+}
+
+/* ----------------------------------------------------------------
+   常驻骰子盘（触屏仿真：点它即掷；只有轮到真人且前一步收干净才能点）
+   ---------------------------------------------------------------- */
+.dice-tray {
+  grid-column: 1 / 5; grid-row: 2;
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * .45);
+  padding: calc(var(--u) * .6) calc(var(--u) * 1.4);
+  border-radius: 999px;
+  border: 2px dashed transparent;
+  transition: background .2s, border-color .2s, box-shadow .2s, transform .12s, opacity .2s;
+}
+.dice-tray[aria-disabled="true"] { opacity: .62; }
+/* 可点态：呼吸灯 + 虚线框，一眼看出「现在轮到你」 */
+.dice-tray.armed {
+  border-color: var(--brand-orange);
+  background: rgba(255, 243, 214, .88);
+  cursor: pointer;
+  animation: jym-pulse 1.3s ease-in-out infinite;
+}
+.dice-tray.armed:active { transform: scale(.96); }
+.dice-tray.rolling { pointer-events: none; opacity: 1; }
+
+.dice-row { display: flex; gap: calc(var(--u) * 1.1); }
+.die {
+  width: clamp(44px, calc(var(--u) * 8.4), 84px);   /* 触摸区 ≥ 44px */
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6%;
+  padding: 11%;
+  border-radius: 20%;
+  background: linear-gradient(150deg, #FFFDF7, #EFE2C8);
+  border: 2px solid #E0CFAF;
+  box-shadow: 0 8px 18px rgba(74, 35, 17, .22), inset 0 -5px 10px rgba(156, 122, 60, .16);
+}
+.die[hidden] { display: none; }
+.die i { border-radius: 50%; background: transparent; }
+.die i.on {
+  background: radial-gradient(circle at 34% 30%, #6E4A2A, #2B1A0C 72%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, .35);
+}
+.die.tumble { animation: jym-dice .32s linear infinite; }
+@keyframes jym-dice {
+  0%   { transform: translateY(0)     rotate(0deg); }
+  25%  { transform: translateY(-16%)  rotate(-10deg); }
+  50%  { transform: translateY(0)     rotate(0deg); }
+  75%  { transform: translateY(-10%)  rotate(8deg); }
+  100% { transform: translateY(0)     rotate(0deg); }
+}
+.dice-sum {
+  font-size: clamp(12px, calc(var(--u) * 1.5), 16px); font-weight: 900;
+  color: var(--jc-primary); font-variant-numeric: tabular-nums;
+  min-height: 1.5em; white-space: nowrap;
+}
+
+/* 四摞卡位（横排，吃满中段）
+   平时隐藏（机会 / 命运只在落点命中时现身）；命中后 `.armed` 亮起、可就手翻开。 */
+.pile {
+  grid-row: 3;
+  position: relative; z-index: 1;
+  display: grid; grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(var(--u) * .45); min-width: 0;
+  justify-items: center;
+  overflow: hidden;                        /* 图片按原始尺寸撑破格子时，就地裁剪不外溢 */
+  opacity: 0;
+  transform: translateY(8%) scale(.94);
+  pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+.pile.live { opacity: 1; transform: none; }
+/* 尺寸约束必须挂在所有 .pile img 上，而不是只在 .live 状态：
+   未置为 live 时若缺 max-*，图片会按原始像素渲染（实测 898×665），
+   把中心区顶到 815px 溢出。 */
+.pile img {
+  align-self: center; justify-self: center;
+  width: auto; height: auto;               /* 依 63:88 比例自适应，max-* 收边不变形 */
+  max-width: 100%; max-height: 100%;
+  aspect-ratio: 63 / 88;
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 5px 12px rgba(28, 26, 23, .24);
+}
+.pile.armed { pointer-events: auto; cursor: pointer; z-index: 3; }
+.pile.armed img {
+  box-shadow: 0 0 0 3px var(--brand-yellow), 0 10px 26px rgba(230, 57, 0, .42);
+  animation: jym-pulse 1.3s ease-in-out infinite;
+}
+.pile.armed:active { transform: scale(.96); }
+.pile.armed::after {
+  content: "👆 点我翻开";
+  position: absolute; left: 50%; top: 40%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  white-space: nowrap; pointer-events: none;
+  font-size: clamp(10px, calc(var(--u) * 1.02), 13px); font-weight: 900;
+  color: #5A3A00; background: var(--brand-yellow);
+  border-radius: 999px; padding: .25em .7em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+  z-index: 2;
+  animation: jym-pulse 1.1s ease-in-out infinite;
+}
+.pile-meta {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: clamp(10px, calc(var(--u) * .98), 13px); line-height: 1.3; white-space: nowrap;
+}
+.pile-meta b { font-weight: 900; color: var(--jc-ink); }
+.pile-count { color: var(--ink2); font-variant-numeric: tabular-nums; }
+
+/* 季节盘（底部横排） */
+.season-dial {
+  grid-column: 1 / 5; grid-row: 4;
+  position: relative; z-index: 1;
+  display: flex; gap: calc(var(--u) * .8);
+}
+.s-chip {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(var(--u) * .5) calc(var(--u) * .4);
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--zc, var(--jc-primary));
+  font-size: calc(var(--u) * .98); color: var(--ink2);
+  transition: background .2s, color .2s, box-shadow .2s;
+  overflow: hidden; white-space: nowrap;
+}
+.s-chip b { font-size: calc(var(--u) * 1.3); font-weight: 900; color: var(--jc-ink); line-height: 1.25; }
+.s-chip span { text-overflow: ellipsis; overflow: hidden; max-width: 100%; }
+.s-chip.on {
+  background: var(--zc, var(--jc-primary));
+  border-color: var(--zc, var(--jc-primary));
+  color: rgba(255, 255, 255, .9);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .8), 0 6px 14px rgba(28, 26, 23, .25);
+}
+.s-chip.on b { color: #fff; }
+
+/* ================================================================
+   玩偶跳格（逐格计数）与落格脉冲
+   —— 纯 UI 层：不写任何内核状态，落点/步数全部来自 beforeMove 钩子
+   ================================================================ */
+
+/* 跳格玩偶：随格子中心逐格平移 + 每跳一次的弹跳 */
+.walker {
+  position: absolute; z-index: 26;
+  width: calc(var(--u) * 4.2); height: calc(var(--u) * 4.2);
+  margin-left: calc(var(--u) * -2.1); margin-top: calc(var(--u) * -2.1);  /* 以「格子中心」定位 */
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--sc, var(--brand-orange));
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .34);
+  pointer-events: none;
+  transition: left .11s linear, top .11s linear;
+}
+.walker .wk-img {
+  width: 88%; height: 88%;
+  border-radius: 50%;
+  object-fit: contain;
+  display: block;
+  background: radial-gradient(circle at 50% 38%, #FFFDF7, #EFE6D4);
+}
+/* display:block 会压过 UA 的 [hidden]{display:none}，无素材隐藏时必须显式关闭 */
+.walker .wk-img[hidden] { display: none; }
+/* 无棋子素材时的字符回退 */
+.walker .wk-no {
+  font-size: calc(var(--u) * 2.1); line-height: 1; display: block;
+}
+.walker .wk-no:empty { display: none; }
+.walker[hidden] { display: none; }
+.walker.hop { animation: jym-hop .18s ease-out; }
+@keyframes jym-hop {
+  0%   { transform: translateY(0)     scale(1); }
+  45%  { transform: translateY(-46%)  scale(1.14); }
+  100% { transform: translateY(0)     scale(1); }
+}
+/* 剩余步数小气泡 */
+.walker .wk-step {
+  position: absolute; top: calc(var(--u) * -1.15); right: calc(var(--u) * -1.15);
+  min-width: calc(var(--u) * 2.1); height: calc(var(--u) * 2.1);
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: #fff; color: var(--jc-primary);
+  font-size: calc(var(--u) * 1.2); font-weight: 900;
+  border: 1.5px solid var(--jc-gold);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .24);
+}
+
+/* 手动走格：棋子亮起可点，下一格也亮起（点哪个都行，仿真「推着棋子走」） */
+.walker.armed {
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 27;
+  box-shadow: 0 0 0 3px var(--brand-yellow), 0 0 22px rgba(255, 193, 7, .78);
+}
+.walker.armed .wk-step { animation: jym-pulse 1.1s ease-in-out infinite; }
+/* 手机上棋子本体只有十几像素，手指点不准：armed 时叠一层看不见的大热区（≥34px，约一格） */
+.walker.armed::before {
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  width: max(100%, 34px); height: max(100%, 34px);
+  transform: translate(-50%, -50%); border-radius: 50%;
+}
+.walker.armed::after {
+  content: "点我";
+  position: absolute; left: 50%; bottom: 112%;
+  transform: translateX(-50%);
+  white-space: nowrap; pointer-events: none;
+  font-size: clamp(10px, calc(var(--u) * 1.02), 13px); font-weight: 900; color: #5A3A00;
+  background: var(--brand-yellow);
+  border-radius: 999px; padding: .2em .62em;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
+  animation: jym-pulse 1.1s ease-in-out infinite;
+}
+/* 触发区不够大时（手机上棋子偏小），下一格也当点击热区 */
+.cell.tap {
+  cursor: pointer;
+  z-index: 3;
+  box-shadow: 0 0 0 3px var(--brand-yellow), 0 0 20px rgba(255, 193, 7, .72);
+}
+
+/* 正在数到的那一格 */
+.cell.hop {
+  z-index: 2;
+  transform: scale(1.04);
+  box-shadow: 0 0 0 2px var(--brand-yellow), 0 0 16px rgba(255, 193, 7, .6);
+}
+
+/* 落定脉冲（走到目的地的那一下） */
+.cell.landed { z-index: 4; animation: jym-land .6s ease-out; }
+@keyframes jym-land {
+  0%   { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(255, 193, 7, .9), 0 0 26px rgba(255, 152, 0, .75); }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1.06); box-shadow: 0 0 0 2.5px var(--brand-orange), 0 0 18px rgba(255, 152, 0, .6); }
+}
+
+/* 手动走格的「下一格预告」：棋盘底部中央浮一条小提示（谁的地 / 租多少 / 能不能买）。
+   只读内核、纯展示，点棋子前给玩家一个「要不要走」的判断依据。 */
+.step-tip {
+  position: absolute; z-index: 24;
+  left: 50%; bottom: calc(var(--u) * 1.3);
+  transform: translateX(-50%);
+  max-width: 88%;
+  padding: .34em .95em;
+  border-radius: 999px;
+  background: rgba(28, 26, 23, .84);
+  color: #fff;
+  font-size: clamp(11px, calc(var(--u) * 1.5), 15px);
+  font-weight: 800;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
+  animation: jym-steptip .2s ease-out;
+}
+.step-tip[hidden] { display: none; }
+@keyframes jym-steptip {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ================================================================
+   翻牌（棋盘区右下角，同步展示，不阻塞内核）
+   ================================================================ */
+.card-reveal {
+  position: absolute; right: 8px; bottom: 8px; z-index: 40;
+  width: clamp(232px, 26vw, 360px);
+  opacity: 0; transform: translateY(14px) scale(.98);
+  transition: opacity .28s, transform .28s;
+  pointer-events: none;
+}
+.card-reveal[hidden] { display: none; }
+.card-reveal.in { opacity: 1; transform: none; pointer-events: auto; }   /* 亮着时可点：点卡片或 ✕ 关掉 */
+
+.cr {
+  position: relative;
+  display: grid; grid-template-columns: 88px minmax(0, 1fr);
+  gap: 11px;
+  padding: 11px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--jc-gold);
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(28, 26, 23, .28);
+  cursor: pointer;                    /* 整张卡都可点：点一下关掉 */
+}
+.cr.up   { border-left-color: #2E7D32; }
+.cr.down { border-left-color: #C62828; }
+
+/* 右上角 ✕：不想等就直接点掉（整张卡也能点） */
+.cr-close {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  width: 32px; height: 32px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: #fff; color: var(--ink2);
+  font-size: 14px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.cr-close:hover { border-color: var(--brand-red); color: var(--brand-red); }
+
+.cr-body { padding-right: 34px; }      /* 给 ✕ 让位，正文不压到按钮 */
+
+.cr-art img {
+  width: 88px; height: 122px; display: block;
+  object-fit: cover; border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(28, 26, 23, .2);
+}
+.cr-noart {
+  width: 88px; height: 122px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--jc-gold);
+  font-size: 30px; font-weight: 900;
+}
+
+.cr-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cr-deck {
+  font-size: 11px; font-weight: 800; color: var(--ink2);
+  background: var(--paper); border-radius: 999px; padding: 1px 9px;
+}
+.cr-who {
+  font-size: 11px; font-weight: 800; color: #fff;
+  border-radius: 999px; padding: 1px 9px;
+}
+.cr-theme { display: block; font-size: 15px; font-weight: 900; color: var(--ink); }
+.cr-text {
+  margin: 4px 0 0; font-size: 12.5px; line-height: 1.55; color: #3A332B;
+}
+.cr-task {
+  margin: 5px 0 0; font-size: 12px; line-height: 1.5;
+  color: var(--jc-accent); background: #EEF3F6;
+  border-radius: 8px; padding: 5px 8px;
+}
+.cr-delta {
+  margin-top: 7px; font-size: 17px; font-weight: 900;
+  font-variant-numeric: tabular-nums; color: var(--ink2);
+}
+.cr-delta.up { color: #2E7D32; }
+.cr-delta.down { color: #C62828; }
+
+.cr-hint {
+  display: inline-block; margin-top: 7px;
+  font-size: 11px; font-weight: 700; color: var(--ink2);
+  background: var(--paper); border-radius: 999px; padding: 2px 10px;
+}
+
+/* ================================================================
+   响应式
+   ================================================================ */
+@media (max-width: 1180px) {
+  /* 棋盘尺寸统一交给 fitBoard() 量测，这里只管居中 */
+  .board { margin: 0 auto; }
+  .card-reveal { width: min(340px, 88vw); }
+}

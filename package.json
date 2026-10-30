@@ -1,0 +1,13 @@
+{
+  "name": "jingyun-monopoly",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "京韵大富翁·胡同漫游记 —— 本机 Web 版（原生 HTML/CSS/JS，零构建）",
+  "scripts": {
+    "serve": "python3 -m http.server 8099 --directory public",
+    "chrome": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --headless=new --remote-debugging-port=9222 --user-data-dir=/tmp/jym-chrome --no-first-run --disable-gpu about:blank",
+    "test": "node tests/run_all.mjs",
+    "accept": "node tools/accept.mjs"
+  }
+}
