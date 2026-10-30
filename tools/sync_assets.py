@@ -14,8 +14,13 @@
     <SRC>/08_试玩与用户反馈/05_数字试玩版/生成脚本/gamedata.json -> public/assets/data/gamedata.json
 
 用法：
-    python3 tools/sync_assets.py            # 同步
-    python3 tools/sync_assets.py --check    # 只校验目标是否齐全，不复制
+    python3 tools/sync_assets.py            # 同步 + 瘦身
+    python3 tools/sync_assets.py --check    # 只校验目标是否齐全、是否超标，不复制
+
+瘦身（不可回退）：
+    源素材是印刷用大图，全部同步进来会把仓库撑到 ~21.7MB。脚本在每次同步结束后
+    会自动跑一遍「等比重压」，把素材压回「够用尺寸」（约 9.3MB）；--check 也会
+    复查尺寸，超标即判失败。因此「手动跑一次同步就把原图拉回来」这条回退路径不存在。
 """
 
 import json
@@ -23,6 +28,8 @@ import os
 import re
 import sys
 import shutil
+import subprocess
+import tempfile
 from collections import deque
 from datetime import datetime
 
@@ -269,6 +276,143 @@ def sync_pawns():
     return 0
 
 
+# ---- 素材瘦身：目录规则（最大边长, jpeg 质量或 None）----
+# 只保留「实际显示够用」的像素：landmarks 棋盘格内实际显示 60-90px，
+# 卡面/卡背按弹层尺寸，棋子按面板尺寸。board_center_illustration 单独放宽到 800。
+SLIM_RULES = {
+    "landmarks": (256, None),
+    "cards/vignettes": (384, 78),
+    "cards/backs": (480, 80),
+    "cards/templates": (480, 80),
+    "pawns": (192, None),
+    "special": (256, None),
+}
+SLIM_SPECIAL_BIG = {"board_center_illustration": 800}
+SLIM_EXT = (".png", ".jpg", ".jpeg")
+
+
+def _slim_rule(rel_dir, name):
+    """按目录前缀（长的优先）取瘦身规则；special 里的大图单独放宽。"""
+    for key in sorted(SLIM_RULES, key=len, reverse=True):
+        if rel_dir == key or rel_dir.startswith(key + "/"):
+            maxdim, quality = SLIM_RULES[key]
+            if key == "special":
+                for token, big in SLIM_SPECIAL_BIG.items():
+                    if token in name:
+                        maxdim = big
+            return maxdim, quality
+    return None, None
+
+
+def _sips_shrink(path, maxdim, quality):
+    """用 macOS 自带 sips 等比缩到 maxdim（JPEG 另按 quality 重编码），返回临时文件路径。"""
+    ext = os.path.splitext(path)[1].lower()
+    fd, tmp = tempfile.mkstemp(suffix=ext)
+    os.close(fd)
+    cmd = ["sips", "-Z", str(maxdim)]
+    if ext in (".jpg", ".jpeg") and quality:
+        cmd += ["-s", "format", "jpeg", "-s", "formatOptions", str(quality)]
+    cmd += [path, "--out", tmp]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        os.unlink(tmp)
+        return None
+    return tmp
+
+
+def slim(pub=None):
+    """就地等比压到「够用尺寸」。
+
+    幂等：只有确实变小的文件才覆盖，重复执行结果不变；因此同步完跑一次就等于
+    把瘦身焊死在流程里，瘦身结果不可被同步回退。
+    """
+    pub = pub or PUB
+    if not shutil.which("sips"):
+        print("⚠ 未找到 sips（仅 macOS 提供），跳过素材瘦身，素材可能偏大")
+        return
+    before = after = 0
+    changed = skipped = 0
+    failed = []
+    for dp, _dn, fn in os.walk(pub):
+        rel = os.path.relpath(dp, pub).replace(os.sep, "/")
+        rel = "" if rel == "." else rel
+        if rel == "data":
+            continue
+        for name in sorted(fn):
+            if not name.lower().endswith(SLIM_EXT):
+                continue
+            maxdim, quality = _slim_rule(rel, name)
+            if not maxdim:
+                continue
+            path = os.path.join(dp, name)
+            size0 = os.path.getsize(path)
+            dim = _max_dimension(path)
+            if dim is not None and dim <= maxdim:
+                # 已在目标尺寸内：**不重编码**。JPEG 每次重编码都会掉一点画质、
+                # 体积也会小幅漂移，重复跑同步会让仓库与画质一直变。
+                before += size0
+                after += size0
+                skipped += 1
+                continue
+            tmp = _sips_shrink(path, maxdim, quality)
+            before += size0
+            if tmp is None:
+                failed.append(os.path.relpath(path, PROJ))
+                after += size0
+                continue
+            size1 = os.path.getsize(tmp)
+            if size1 < size0:
+                os.replace(tmp, path)
+                after += size1
+                changed += 1
+            else:
+                os.unlink(tmp)
+                after += size0
+                skipped += 1
+    print(f"✓ 素材瘦身：压缩 {changed} 个 / 保持原样 {skipped} 个，"
+          f"{before / 1048576:.1f} MB → {after / 1048576:.1f} MB")
+    for f in failed:
+        print(f"  ⚠ 瘦身失败（已保留原图）：{f}")
+
+
+def _max_dimension(path):
+    """读图片最大边长；优先 Pillow（快），退化到 sips，都不可用则返回 None。"""
+    try:
+        from PIL import Image
+        with Image.open(path) as im:
+            return max(im.size)
+    except Exception:
+        pass
+    if shutil.which("sips"):
+        r = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", path],
+                           capture_output=True, text=True)
+        vals = re.findall(r"pixel(?:Width|Height):\s*(\d+)", r.stdout)
+        if len(vals) == 2:
+            return max(int(v) for v in vals)
+    return None
+
+
+def check_slim():
+    """瘦身门禁：逐个复查尺寸，返回超标清单（相对 public/assets 的路径）。"""
+    oversize = []
+    for name in ("landmarks", "special", "cards", "pawns"):
+        root = os.path.join(PUB, name)
+        if not os.path.isdir(root):
+            continue
+        for dp, _dn, fn in os.walk(root):
+            rel = os.path.relpath(dp, PUB).replace(os.sep, "/")
+            for f in sorted(fn):
+                if not f.lower().endswith(SLIM_EXT):
+                    continue
+                maxdim, _q = _slim_rule(rel, f)
+                if not maxdim:
+                    continue
+                dim = _max_dimension(os.path.join(dp, f))
+                if dim and dim > maxdim:
+                    oversize.append(f"{rel}/{f}  {dim}px > {maxdim}px")
+    return oversize
+
+
 def count_files(root):
     n = 0
     for dp, _dn, fn in os.walk(root):
@@ -310,9 +454,9 @@ def sync():
     sync_pawns()
 
     print(f"\n合计同步 {total} 个文件。")
+    slim()
     write_manifest()
-    report()
-    return 0
+    return 0 if report() else 1
 
 
 def report():
@@ -348,12 +492,24 @@ def report():
         if miss_sp:
             print(f"  ⚠ manifest 特殊格图标缺：{miss_sp}")
             ok = False
+
+    # 瘦身门禁：素材尺寸超标 = 有人把印刷原图塞回了仓库
+    oversize = check_slim()
+    if oversize:
+        print(f"  ⚠ 有 {len(oversize)} 个素材超过瘦身尺寸"
+              f"（跑一次 python3 tools/sync_assets.py 会自动压回）：")
+        for o in oversize[:10]:
+            print(f"      {o}")
+        if len(oversize) > 10:
+            print(f"      … 另有 {len(oversize) - 10} 个")
+        ok = False
     print("\n✅ 素材同步校验通过" if ok else "\n❌ 素材同步校验未通过")
+    return ok
 
 
 def main():
     if "--check" in sys.argv:
-        return report() or 0
+        return 0 if report() else 1
     return sync()
 
 
