@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.sevensmile.jingyunmonopoly"
+    android:versionCode="11"
+    android:versionName="1.0.0">
+
+    <uses-sdk
+        android:minSdkVersion="24"
+        android:targetSdkVersion="33" />
+
+    <application
+        android:allowBackup="true"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="京韵大富翁"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="reverseLandscape">
+            <!--
+              screenOrientation 必须钉死为 reverseLandscape(=180°)，禁止用 user / fullSensor / sensor。
+              原因：本机 DC-JAV-FLIP 的面板由厂商固件按「自然横向 + 180° 补偿」安装 ——
+                persist.fanc.cus.default.rotation=0
+                persist.fanc.cus.offset.rotation=2
+              因此整机正确的姿态恒为 ROTATION_180，系统桌面（com.dc.launcher）就固定停在这个角度。
+              user / sensor 会让应用改听重力传感器，传感器偶尔判成 0° 时，
+              游戏画面就会相对桌面与机身上下颠倒（即此前反复出现的「画面颠倒」）。
+              钉死 180° 后，应用与厂商补偿、与系统桌面三者恒定一致，不再随后续姿态漂移。
+              若日后面板改为另一种安装角度，只需同步改这里的常量（并同步 MainActivity）。
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

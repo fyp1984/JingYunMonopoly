@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>京韵大富翁 · 胡同漫游记｜京城印记版</title>
+<link rel="icon" href="./assets/special/qixiaoguo_logo.png">
+<link rel="stylesheet" href="./styles/base.css">
+<link rel="stylesheet" href="./styles/board.css">
+</head>
+<body>
+<div class="app">
+  <!-- 顶栏：跨三栏 -->
+  <header class="topbar" id="topbar">
+    <img class="logo" src="./assets/special/qixiaoguo_logo.png" alt="七笑果">
+    <div class="titles">
+      <b>京韵大富翁</b>
+      <span>胡同漫游记</span>
+    </div>
+    <span class="app-ver" id="appVer" title="应用版本"></span>
+    <div class="status" id="status"></div>
+    <!-- 隐藏式「玩法助手」：平时只留一个小问号，需要时点开按当前棋局支招 -->
+    <button class="coach-btn" id="btnCoach" type="button"
+            title="玩法助手：按当前棋局讲解规则、给建议" aria-label="玩法助手">?</button>
+  </header>
+
+  <!-- 左栏：季节 + 玩家 -->
+  <aside class="side side-l">
+    <section class="panel" id="seasonPanel"></section>
+    <section class="panel grow" id="playersPanel"></section>
+  </aside>
+
+  <!-- 中栏：棋盘（绝对居中；骰子常驻棋盘中心区，见 src/ui/board.js） -->
+  <div class="boardwrap" id="boardwrap">
+    <div class="board" id="board"></div>
+    <div class="card-reveal" id="cardReveal" hidden></div>
+  </div>
+
+  <!-- 右栏：行情 + 日志 -->
+  <aside class="side side-r">
+    <section class="panel grow" id="marketPanel"></section>
+    <section class="panel log-panel" id="logPanel">
+      <div class="panel-h">行棋日志</div>
+      <!-- 日志筛选：点一下只留下关心的行；右侧下拉可直接跳到某一轮。
+           筛选是纯 CSS（#log[data-filter] + .lg-* 隐藏），切换不重建节点，长局也不卡。 -->
+      <div class="log-tools" id="logTools">
+        <button class="ltool on" type="button" data-filter="all">全部</button>
+        <button class="ltool" type="button" data-filter="lg-buy">买地建房</button>
+        <button class="ltool" type="button" data-filter="lg-rent">收租付租</button>
+        <button class="ltool" type="button" data-filter="lg-card">抽卡</button>
+        <select id="logJump" title="跳到某一轮" aria-label="跳到某一轮"></select>
+      </div>
+      <div class="log" id="log"></div>
+    </section>
+  </aside>
+
+  <!-- 控制条：跨三栏 -->
+  <footer class="controls" id="controls">
+    <span class="turn-bubble" id="turnBubble" hidden></span>
+    <button class="btn ghost" id="btnWalk" title="轮到你自己时：想一步步推着棋子走，还是让它自己跳过去">👣 走格：手动</button>
+    <button class="btn ghost" id="btnPause" title="电脑走的太快看不清？先按暂停，看完再继续">⏸ 暂停</button>
+    <label class="sel">
+      节奏
+      <select id="speed">
+        <option value="0">全速</option>
+        <option value="300">快</option>
+        <option value="650" selected>中</option>
+        <option value="1100">慢</option>
+      </select>
+    </label>
+    <span class="spacer"></span>
+    <button class="btn ghost icon" id="btnSound" type="button"
+            title="音效开关：掷骰、跳格、收租的声音" aria-label="音效开关">🔊</button>
+    <button class="btn ghost" id="btnOrient">🧭 棋盘：正向</button>
+    <button class="btn ghost" id="btnLoad" title="存档箱：自动存档 + 3 个命名档位，可存 / 读 / 删">📂 存档</button>
+    <button class="btn ghost" id="btnNew">🔄 新局</button>
+  </footer>
+</div>
+
+<!-- 闲置演示：长时间没人操作时，电脑自己开局走给你看（点一下即退出） -->
+<div class="attract" id="attract" hidden>
+  <div class="attract-card">
+    <b>京韵大富翁 · 胡同漫游记</b>
+    <span>电脑们正在下一盘，边看边学最快</span>
+    <em>点一下，你也来玩 ▸</em>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="sheet" id="sheet"></div></div>
+
+<script type="module" src="./src/ui/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1012 @@
+/* base.css —— 京韵大富翁 · 胡同漫游记（本机 Web 版）
+ *
+ * 外壳与皮肤：七笑果品牌暖橙渐变（见 .trae/skills/7smile-ui）
+ * 棋盘皮肤：京城印记（见 board.css）
+ *
+ * 这里只放「壳」：页头 / 控制条 / 侧栏面板 / 弹层 / 设置表单 / 轻提示。
+ * 所有尺寸常量集中在 :root，改版只动这里。
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  /* 七笑果品牌 */
+  --brand-orange: #FF9800;
+  --brand-red: #E63900;
+  --brand-yellow: #FFC107;
+  --ink: #4A2311;
+  --ink2: #8C6B5D;
+
+  /* 京城印记 */
+  --jc-primary: #A8231C;
+  --jc-ink: #1C1A17;
+  --jc-accent: #2E5C6E;
+  --jc-gold: #9C7A3C;
+  --jc-bg: #E8DCC0;
+  --jc-card: #F5EDE0;
+
+  --line: #EADFCB;
+  --paper: #FBF6EC;
+  --radius: 18px;
+  --shadow: 0 10px 26px rgba(74, 35, 17, .10);
+
+  /* 外壳尺寸：随视口自适应。
+     大屏落在上限；小屏 / 触屏终端（如 1280×672）自动收窄侧栏与页头，把空间让给棋盘。 */
+  --topbar-h: clamp(52px, 5.8vh, 62px);
+  --controls-h: clamp(56px, 6.3vh, 68px);
+  --side-w: clamp(228px, 21vw, 300px);   /* 左右侧栏等宽（收窄一点，把宽度让给棋盘） */
+  --gap: clamp(8px, 1.1vmin, 12px);
+  --pad: clamp(8px, 1.1vmin, 12px);
+}
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Nunito",
+               "Varela Round", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 58%) fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* 触屏手感：去掉系统点击高亮；棋盘与控制条禁掉长按选中（避免连点选到文字） */
+* { -webkit-tap-highlight-color: transparent; }
+html, body { overscroll-behavior: none; }
+.board, .controls { -webkit-user-select: none; user-select: none; }
+
+/* ================================================================
+   外壳：三栏（左 = 季节+玩家 / 中 = 棋盘居中 / 右 = 行情+日志）
+   ================================================================ */
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: var(--side-w) minmax(0, 1fr) var(--side-w);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--gap);
+  padding: var(--pad);
+}
+.app > .topbar    { grid-column: 1 / -1; grid-row: 1; }
+.app > .side-l    { grid-column: 1; grid-row: 2; }
+.app > .boardwrap { grid-column: 2; grid-row: 2; }
+.app > .side-r    { grid-column: 3; grid-row: 2; }
+.app > .controls  { grid-column: 1 / -1; grid-row: 3; }
+
+/* ---- 页头 ---- */
+.topbar {
+  position: relative;
+  height: var(--topbar-h);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.topbar .logo {
+  width: 40px; height: 40px; object-fit: contain; flex: none;
+  filter: drop-shadow(0 3px 6px rgba(230, 57, 0, .18));
+}
+.topbar .titles { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.topbar .titles b {
+  font-size: 19px; font-weight: 900; letter-spacing: .02em;
+  background: linear-gradient(120deg, var(--brand-orange), var(--brand-red));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.topbar .titles span { font-size: 12px; color: var(--ink2); }
+.topbar .app-ver {
+  flex: none; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  color: var(--ink2); background: var(--paper);
+  border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums;
+}
+.topbar .status {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--ink2); font-variant-numeric: tabular-nums;
+}
+.topbar .status > span {
+  background: var(--paper); border-radius: 999px; padding: 4px 11px;
+}
+.topbar .status .dot { background: none; padding: 0; }
+.topbar .status .paused { background: #FDECEA; color: #B3261E; font-weight: 700; }
+.topbar .status .seed { background: #EEF3F6; color: var(--jc-accent); }
+
+/* ---- 棋盘区（中栏，居中）；棋盘边长由 src/ui/board.js::fitBoard() 量测写入 ---- */
+.boardwrap {
+  position: relative;
+  min-width: 0; min-height: 0;
+  display: grid; place-items: center;
+}
+
+/* ---- 控制条 ---- */
+.controls {
+  position: relative;
+  min-height: var(--controls-h);
+  /* 严格单行：整机终端（1280×672 CSS px）正好卡在临界宽度，一旦折行就要
+     多吃 ~56px 高度，棋盘跟着小一圈。所以这里禁掉换行，多余宽度由
+     .spacer 与 .turn-bubble 依序收缩吸收。 */
+  display: flex; align-items: center; flex-wrap: nowrap;
+  gap: clamp(8px, .62vw, 10px);
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.controls .spacer { flex: 1 1 auto; min-width: 0; }
+.controls .sel {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--ink2);
+  font-size: clamp(11.5px, .98vw, 12.5px);
+}
+.controls select {
+  height: 44px;
+  padding: 0 clamp(8px, .8vw, 12px);
+  font-size: clamp(12.5px, 1.05vw, 15px);
+  border: 1px solid var(--line); border-radius: 999px;
+  background: #fff; cursor: pointer;
+}
+/* 控制条必须能在一行内放下 —— 整机终端（1280×672 CSS px）正好落在临界宽度，
+   一旦折行就要吃掉 ~56px 高度，棋盘跟着小一圈。所以按钮的字号 / 内边距
+   随视口宽度等比收缩；宽屏（≥1600px）仍与改版前的固定值完全一致。
+   高度保持 44px 不放，触摸区不缩水。 */
+.controls .btn {
+  height: 44px;
+  padding: 0 clamp(10px, .95vw, 20px);
+  font-size: clamp(12.5px, 1vw, 15px);
+}
+/* 图标按钮（喇叭开关）：方形、不撑宽，省下横向空间给有字的按钮。 */
+.controls .btn.icon {
+  width: 44px; padding: 0; flex: none;
+  font-size: clamp(15px, 1.3vw, 18px); line-height: 1;
+  display: grid; place-items: center;
+}
+.controls .btn.icon.off { color: var(--ink2); opacity: .7; }
+/* 轮到谁的气泡宽度会被玩家名撑大，是控制条里唯一宽度不确定的项 ——
+   给它一个上限、允许收缩与省略号，保证再多几个字也不会把整条挤到第二行。 */
+.controls .turn-bubble {
+  flex: 0 1 auto; min-width: 0;
+  max-width: 28vw;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- 按钮 ---- */
+.btn {
+  height: 44px; padding: 0 20px;                 /* 触摸区 ≥ 44px */
+  border: 1px solid transparent; border-radius: 999px;
+  font-size: 15px; font-weight: 800; cursor: pointer;
+  transition: transform .12s, box-shadow .2s, background .2s, border-color .2s;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn.primary {
+  background: linear-gradient(120deg, var(--brand-orange), var(--brand-red));
+  color: #fff; box-shadow: 0 8px 18px rgba(230, 57, 0, .26);
+}
+.btn.primary:hover {
+  background: linear-gradient(120deg, #FFA726, #F4511E);
+  box-shadow: 0 10px 22px rgba(230, 57, 0, .32);
+}
+.btn.ghost { background: #fff; border-color: var(--line); color: var(--ink); }
+.btn.ghost:hover { border-color: var(--brand-orange); color: var(--brand-red); }
+.btn.ghost.on { background: #FDECEA; border-color: var(--brand-red); color: var(--brand-red); }
+.btn:disabled, .btn.disabled {
+  opacity: .45; cursor: not-allowed; box-shadow: none; transform: none;
+}
+
+/* 「点我」呼吸灯：骰子盘 / 卡摞 / 玩偶共用 */
+@keyframes jym-pulse {
+  0%, 100% { box-shadow: 0 8px 18px rgba(230, 57, 0, .26); }
+  50%      { box-shadow: 0 8px 26px rgba(230, 57, 0, .55); }
+}
+
+.btn.mini {
+  height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 999px;
+  background: var(--paper); border-color: var(--line);
+}
+.btn.mini:hover { border-color: var(--brand-orange); color: var(--brand-red); }
+
+/* ================================================================
+   侧栏（左 / 右）与面板
+   ================================================================ */
+.side {
+  min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: var(--gap);
+}
+
+.panel {
+  position: relative;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(74, 35, 17, .06);
+  padding: 12px 14px;
+  transition: box-shadow .2s, padding .2s;
+}
+/* 吃满剩余高度并独立滚动的面板（玩家 / 行情） */
+.panel.grow { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.panel.grow::-webkit-scrollbar,
+.log::-webkit-scrollbar { width: 8px; }
+.panel.grow::-webkit-scrollbar-thumb,
+.log::-webkit-scrollbar-thumb { background: #E4D6BE; border-radius: 999px; }
+
+.panel-h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 900; color: var(--ink);
+  margin-bottom: 9px;
+  padding-right: 62px;             /* 给右上角的收起/全屏按钮让位 */
+}
+.panel-hint {
+  margin-left: auto; font-size: 11.5px; font-weight: 700;
+  color: var(--ink2); background: var(--paper);
+  border-radius: 999px; padding: 2px 9px;
+}
+.muted { color: var(--ink2); font-size: 12.5px; line-height: 1.6; margin: 4px 0 0; }
+
+/* ---- 区域工具：收起 / 全屏（顶栏、控制条、各面板通用） ---- */
+.panel-tools { display: flex; gap: 4px; flex: none; z-index: 3; }
+.panel > .panel-tools { position: absolute; top: 9px; right: 10px; }
+/* 棋盘区只挂「全屏」按钮，落在右上角空白处（棋盘居中，四角本就空着） */
+.boardwrap > .panel-tools { position: absolute; top: 8px; right: 8px; }
+.ptool {
+  width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: #fff; color: var(--ink2);
+  font-size: 13px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.ptool:hover { border-color: var(--brand-orange); color: var(--brand-red); }
+.ptool.on { background: #FDECEA; border-color: var(--brand-red); color: var(--brand-red); }
+
+/* 收起：只留标题与工具按钮 */
+.panel.collapsed > *:not(.panel-h):not(.panel-tools) { display: none; }
+.panel.collapsed > .panel-h { margin-bottom: 0; }
+/* 收起后不再吃剩余高度（否则 grow 面板撑满，看起来像没收起） */
+.panel.collapsed { flex: 0 0 auto; }
+.topbar.collapsed > *:not(.panel-tools),
+.controls.collapsed > *:not(.panel-tools) { display: none; }
+.topbar.collapsed, .controls.collapsed { height: auto; min-height: 0; padding: 8px 12px; }
+
+/* 全屏：该区域浮到最上层铺满窗口（低于弹层，弹层仍在其上） */
+.region-fs {
+  position: fixed !important;
+  inset: 10px !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  z-index: 55;
+  margin: 0;
+  max-height: none;
+  overflow: auto;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(28, 26, 23, .34);
+}
+.panel.region-fs { display: flex; flex-direction: column; }
+.panel.region-fs > .panel-tools { position: absolute; top: 10px; right: 12px; }
+.panel.region-fs .log { flex: 1 1 auto; min-height: 0; }
+.log-panel.region-fs { flex: none; }
+
+/* 棋盘全屏：棋盘按「窗口较小边」等比放大（board.js::fitBoard 会重算 --bw/--u），
+   底色用宣纸黄，别用纯白，免得像没加载完。 */
+.boardwrap.region-fs { overflow: hidden; background: var(--jc-bg); }
+.boardwrap.region-fs > .panel-tools { position: absolute; top: 10px; right: 12px; }
+
+/* ---- 季节面板 ---- */
+.season-now { display: flex; gap: 12px; align-items: center; }
+.season-badge {
+  flex: none; width: 66px; height: 66px; border-radius: 20px;
+  background: var(--zc, var(--jc-primary)); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 6px 14px rgba(28, 26, 23, .18);
+}
+.season-badge b { font-size: 24px; line-height: 1; }
+.season-badge span { font-size: 10.5px; opacity: .92; margin-top: 4px; text-align: center; }
+.season-info { min-width: 0; font-size: 13px; }
+.season-info b { color: var(--brand-red); }
+
+/* ---- 玩家面板 ---- */
+.pcard {
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 11px; margin-bottom: 10px;
+}
+.pcard:last-child { margin-bottom: 0; }
+.pcard.me { border-color: var(--brand-orange); box-shadow: 0 0 0 2px rgba(255, 152, 0, .14); }
+.pcard.dead { opacity: .58; }
+
+.pc-head { display: flex; align-items: center; gap: 8px; }
+.pc-head b { font-size: 14px; }
+.pc-head .tag {
+  font-size: 11px; background: #F1E7D6; color: var(--ink2);
+  border-radius: 999px; padding: 1px 9px;
+}
+.pc-head .dead-tag { background: #FDECEA; color: #B3261E; }
+
+.pc-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px;
+  margin: 8px 0 7px; font-size: 12.5px;
+}
+.pc-stats > div {
+  display: flex; justify-content: space-between; gap: 6px;
+  border-bottom: 1px dotted #EFE4D2; padding-bottom: 2px;
+}
+.pc-stats span { color: var(--ink2); }
+.pc-stats b { font-variant-numeric: tabular-nums; }
+
+.pc-skill {
+  font-size: 12px; line-height: 1.5; color: var(--ink2);
+  background: var(--paper); border-radius: 10px; padding: 6px 9px;
+}
+
+.pc-lands {
+  list-style: none; margin: 8px 0 0; padding: 0;
+  font-size: 12.5px; max-height: 152px; overflow: auto;
+}
+.pc-lands li {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; border-bottom: 1px dotted #F2E8D8;
+}
+.pc-lands li:last-child { border-bottom: 0; }
+.pc-lands i { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.pc-lands .pn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-lands .plv {
+  font-size: 11px; background: #EFE3CB; border-radius: 999px; padding: 0 7px;
+  color: var(--ink2); flex: none;
+}
+.pc-lands .prt {
+  flex: none; color: var(--jc-primary); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 行情面板 ---- */
+.zone-block { margin-bottom: 10px; }
+.zone-block:last-child { margin-bottom: 0; }
+.zone-h {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 800;
+  background: var(--paper); border-radius: 10px; padding: 5px 9px;
+}
+.zone-h i { flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--zc); }
+.zone-h span { color: var(--ink2); font-weight: 600; font-size: 11.5px; }
+.zone-h em {
+  margin-left: auto; font-style: normal; font-size: 11px; color: #fff;
+  background: var(--brand-red); border-radius: 999px; padding: 1px 8px;
+}
+.zone-block.season .zone-h { box-shadow: 0 0 0 2px rgba(255, 193, 7, .45); }
+
+.mk-list { list-style: none; margin: 5px 0 0; padding: 0; }
+.mk-row {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  gap: 6px; align-items: center;
+  font-size: 12px; padding: 3px 5px;
+  border-bottom: 1px dotted #F2E8D8; border-radius: 6px;
+}
+.mk-row.free { color: var(--ink2); }
+.mk-row.season { background: rgba(255, 193, 7, .18); }
+.mk-cell { color: var(--ink2); font-variant-numeric: tabular-nums; }
+.mk-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-own {
+  color: #fff; border-radius: 999px; padding: 0 8px; font-size: 11px; font-weight: 700;
+}
+.mk-own.none { background: #EFE3CB; color: var(--ink2); font-weight: 600; }
+.mk-rent {
+  font-variant-numeric: tabular-nums; font-weight: 800; color: var(--jc-primary);
+}
+
+/* ---- 日志 ---- */
+.log-panel { flex: 0 0 32%; min-height: 170px; display: flex; flex-direction: column; }
+.log {
+  flex: 1; min-height: 0; overflow: auto;
+  font-size: 12.5px; line-height: 1.7; font-variant-numeric: tabular-nums;
+}
+.lg { padding: 1px 0 2px; border-bottom: 1px dotted #F3E9D9; color: #3A332B; }
+.lg:last-child { border-bottom: 0; }
+.lg-turn      { color: var(--jc-primary); font-weight: 800; }
+.lg-seasonswap{ color: #B07D12; font-weight: 800; }
+.lg-dead      { color: #B3261E; font-weight: 800; }
+.lg-buy       { color: #2E7D32; }
+.lg-rent      { color: #8A5A32; }
+.lg-card      { color: var(--jc-accent); }
+
+/* ================================================================
+   回合提示气泡（控制条内，轮到真人时冒出）
+   ================================================================ */
+.turn-bubble {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px;
+  border-radius: 999px;
+  background: #FFF3D6; color: #8A5A00;
+  border: 1px dashed var(--brand-yellow);
+  font-size: 13px; font-weight: 800;
+  animation: jym-bubble .28s ease-out;
+}
+.turn-bubble[hidden] { display: none; }
+@keyframes jym-bubble {
+  from { transform: scale(.86); opacity: 0; }
+  to   { transform: none;     opacity: 1; }
+}
+
+/* 骰子（常驻棋盘中心区，点它即掷）的样式见 board.css —— 它随棋盘容器等比缩放。 */
+
+/* ================================================================
+   弹层
+   ================================================================ */
+.overlay {
+  position: fixed; inset: 0; z-index: 60;
+  /* flex + .sheet{margin:auto} 才能「放得下就居中、放不下就顶部对齐并滚动」。
+     旧版用 grid place-items:center：弹层比视口高时会被上下对称裁掉，
+     顶部与底部的文字/按钮永远滚不到（就是「内容显示不完整、被遮挡」的根因）。 */
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 20px;
+  background: rgba(28, 26, 23, .45);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity .2s;
+  overflow: auto;
+  overscroll-behavior: contain;   /* 弹层内的滚轮/滑动不再穿透到底下的棋盘 */
+}
+.overlay[hidden] { display: none; }
+.overlay.in { opacity: 1; }
+
+.sheet {
+  width: 100%; max-width: 560px;
+  margin: auto;                    /* 空间够 → 居中；不够 → 归零、从顶部起可滚 */
+  max-height: calc(100vh - 40px);  /* 正好等于视口减 overlay 上下 padding，绝不溢出被裁 */
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #fff; border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(28, 26, 23, .3);
+  padding: 20px;
+  transform: translateY(10px) scale(.985);
+  transition: transform .2s;
+}
+.overlay.in .sheet { transform: none; }
+
+.dlg-h { margin-bottom: 14px; }
+.dlg-h b { font-size: 18px; font-weight: 900; color: var(--ink); }
+.dlg-h p { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); }
+.dlg-body { margin-bottom: 14px; }
+.dlg-actions {
+  display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* 键值表（买地确认） */
+.kv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.kv th {
+  width: 46%; text-align: left; font-weight: 600; color: var(--ink2);
+  padding: 6px 8px; border-bottom: 1px dotted #EFE4D2;
+}
+.kv td {
+  padding: 6px 8px; text-align: right; font-weight: 800;
+  border-bottom: 1px dotted #EFE4D2; font-variant-numeric: tabular-nums;
+}
+
+/* 数据表（建房 / 结算） */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th {
+  text-align: left; font-size: 11.5px; color: var(--ink2); font-weight: 800;
+  padding: 6px 8px; background: var(--paper);
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.tbl td {
+  padding: 7px 8px; border-bottom: 1px dotted #EFE4D2;
+  font-variant-numeric: tabular-nums;
+}
+.tbl tr.off td { opacity: .45; }
+
+.buy-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.buy-head img {
+  width: 88px; height: 88px; flex: none; object-fit: contain;
+  background: var(--paper); border-radius: 14px; padding: 6px;
+}
+.buy-name { font-size: 16px; font-weight: 900; }
+.chip {
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+  padding: 1px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; color: #fff;
+}
+
+/* ================================================================
+   开局设置
+   ================================================================ */
+.setup-h { margin-bottom: 16px; }
+.setup-h b {
+  font-size: 21px; font-weight: 900;
+  background: linear-gradient(120deg, var(--brand-orange), var(--brand-red));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.setup-h p { margin: 5px 0 0; font-size: 12.5px; color: var(--ink2); }
+
+.field { margin-bottom: 15px; }
+.field > label {
+  display: block; margin-bottom: 7px;
+  font-size: 12.5px; font-weight: 800; color: var(--ink2); letter-spacing: .03em;
+}
+
+.seg {
+  display: inline-flex; gap: 3px; padding: 3px;
+  background: #F4EADA; border-radius: 999px;
+}
+.seg-btn {
+  border: 0; background: transparent; cursor: pointer;
+  height: 36px; padding: 0 14px; border-radius: 999px;
+  font-size: 13px; font-weight: 800; color: var(--ink2);
+  transition: background .18s, color .18s;
+}
+.seg-btn.on {
+  background: #fff; color: var(--jc-primary);
+  box-shadow: 0 2px 8px rgba(74, 35, 17, .12);
+}
+
+/* ---- 图文卡选择器（高级设置：换季规则 / 房租倍数）----
+   和图版同一套交互契约（.seg[data-name] + .seg-btn.on[data-value]），
+   但每项是「大图标 + 短标题 + 一句话」的卡片 —— 少文字、多图形，小朋友也能秒懂。 */
+.seg.cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px; padding: 0; background: none; border-radius: 0;
+}
+.seg.cards .card-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  height: auto; padding: 12px 8px; border-radius: 16px;
+  background: #fff; border: 1.5px solid var(--line);
+  color: var(--ink); text-align: center; line-height: 1.35;
+}
+.seg.cards .card-opt .co-ic { font-size: 26px; line-height: 1; }
+.seg.cards .card-opt .co-title { font-size: 13.5px; font-weight: 900; }
+.seg.cards .card-opt .co-cap { font-size: 11.5px; font-weight: 600; color: var(--ink2); }
+.seg.cards .card-opt.on {
+  border-color: var(--brand-orange);
+  background: linear-gradient(180deg, #FFF6E6, #FFFDF9);
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, .18);
+}
+.seg.cards .card-opt.on .co-title { color: var(--brand-red); }
+
+.check {
+  display: flex; gap: 9px; align-items: flex-start;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 12px; cursor: pointer;
+  transition: border-color .18s, box-shadow .18s;
+}
+.check:hover { border-color: var(--brand-orange); }
+.check input {
+  flex: none; width: 16px; height: 16px; margin: 2px 0 0;
+  accent-color: var(--brand-orange); cursor: pointer;
+}
+.check b { display: block; font-size: 13px; font-weight: 800; }
+.check em {
+  display: block; margin-top: 2px; font-style: normal;
+  font-size: 12px; color: var(--ink2); line-height: 1.5;
+}
+
+.seats { display: grid; gap: 8px; }
+.seat-row {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px;
+}
+.seat-row.off { opacity: .4; }
+.seat-row .seat-no { font-size: 13px; font-weight: 800; color: var(--ink2); }
+.seat-row .name-in { height: 40px; }
+.seat-pick {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 9px 15px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.seat-pick:hover { border-color: var(--brand-orange); }
+.seat-pick input { width: 16px; height: 16px; accent-color: var(--brand-orange); cursor: pointer; }
+/* 「真人 · 手动」↔「电脑 · 自动」随勾选状态切换（纯 CSS，不用 :has()，照顾老 WebView） */
+.seat-pick .role-on  { color: var(--brand-red); }
+.seat-pick .role-off { display: none; color: var(--ink2); }
+.seat-pick input:not(:checked) ~ .role-on  { display: none; }
+.seat-pick input:not(:checked) ~ .role-off { display: inline; }
+
+.txt {
+  width: 100%; height: 44px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: #fff; font-size: 14px;
+}
+.txt:focus, .controls select:focus {
+  outline: 0; border-color: var(--brand-orange);
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, .18);
+}
+
+.switches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.adv { margin: 6px 0 16px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.adv summary {
+  cursor: pointer; font-size: 13px; font-weight: 800; color: var(--ink2);
+  margin-bottom: 12px; list-style: none;
+}
+.adv summary::before { content: "▸ "; color: var(--brand-orange); }
+.adv[open] summary::before { content: "▾ "; }
+
+.setup-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+/* 「恢复默认」靠左，与右侧的「继续上局 / 开始对局」分开，避免误点。 */
+.setup-actions .setup-reset { margin-right: auto; }
+
+/* 主操作按钮常驻卡片底部：终端是小视口（1280×672 CSS px），表单比可视区高时
+   用户不该「先滚动才能点到开始对局」。sticky 让按钮行始终压在滚动区下沿。
+
+   左右各 -20px + 内边距 20px：让按钮行横向铺满 .sheet 的整幅（否则左右会露出
+   20px 白缝、下层文字透上来）。
+
+   底部**不能**再用负 margin：负的 margin-bottom 会让这一行的流式底边越过滚动
+   视口，于是 maxScroll 之后它仍处于「被钉住」状态，永远比内容多压住几像素 ——
+   表现就是「弹层里最后一排卡片按钮的下边线被底栏遮住」。改成 0 后，滚到底时
+   这一行正好落回自己的流式位置（在最后一项内容之下），底栏下沿与 .sheet 内容
+   盒下沿齐平（下方露出的 20px 是 .sheet 的白内边距，与底栏同色，看不出缝）。 */
+.setup-actions,
+.dlg-actions {
+  position: sticky; bottom: 0; z-index: 2;
+  background: #fff;
+  padding: 12px 20px 20px;
+  margin: 6px -20px 0;
+  border-top: 1px solid var(--line);
+}
+
+/* ================================================================
+   轻提示 / 致命错误
+   ================================================================ */
+.toast {
+  position: fixed; left: 50%; bottom: 30px; z-index: 90;
+  transform: translate(-50%, 12px);
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(28, 26, 23, .92); color: #fff;
+  padding: 11px 16px 11px 20px; border-radius: 22px;
+  font-size: 13.5px; font-weight: 600;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+  opacity: 0; transition: opacity .25s, transform .25s;
+  pointer-events: auto; cursor: pointer;      /* 点一下即可立刻关掉；不点就等自动消失 */
+  max-width: 78vw;
+}
+.toast.in { opacity: 1; transform: translate(-50%, 0); }
+.toast-msg { min-width: 0; line-height: 1.5; }
+.toast-x {
+  flex: none; width: 26px; height: 26px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(255, 255, 255, .22); color: #fff;
+  font-size: 12px; line-height: 1; display: grid; place-items: center;
+}
+.toast-x:hover { background: rgba(255, 255, 255, .38); }
+
+.fatal {
+  max-width: 580px; margin: 16vh auto;
+  background: #fff; border: 1px solid var(--line); border-radius: 22px;
+  padding: 28px; text-align: center;
+  font-size: 14px; line-height: 1.9; color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.fatal code {
+  background: var(--paper); border-radius: 6px; padding: 2px 7px;
+  font-size: 13px; color: var(--brand-red);
+}
+
+/* ================================================================
+   玩法助手（隐藏式问号按钮 + 按棋局支招的弹层）
+   ================================================================ */
+/* 顶栏最右的小问号：平时低对比度「藏」起来，悬停/聚焦才点亮 */
+.coach-btn {
+  flex: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--brand-orange);
+  background: #fff; color: var(--brand-orange);
+  font-size: 17px; font-weight: 900; line-height: 1;
+  display: grid; place-items: center;
+  cursor: pointer;
+  opacity: .55;
+  transition: opacity .18s, transform .18s, box-shadow .18s;
+}
+.coach-btn:hover, .coach-btn:focus-visible {
+  opacity: 1; transform: scale(1.07);
+  box-shadow: 0 0 0 4px rgba(255, 152, 0, .16);
+}
+
+/* 助手用独立弹层（z 高于普通弹层），避免与买地/建房对话框抢同一个 #sheet */
+.coach-ov { z-index: 70; }
+.coach-ov:not(.in) { pointer-events: none; }
+.coach-sheet { max-width: 560px; }
+
+.coach-body { display: flex; flex-direction: column; gap: 11px; }
+.coach-sec {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 13px;
+}
+.coach-sec h4 {
+  margin: 0 0 5px; font-size: 12.5px; font-weight: 800;
+  color: var(--ink2); letter-spacing: .04em;
+}
+.coach-sec p { margin: 3px 0; font-size: 13.5px; line-height: 1.7; }
+.coach-now { font-size: 15px; font-weight: 800; color: var(--jc-primary); }
+.coach-tip { background: linear-gradient(180deg, #FFF6E6, #FFFDF9); border-color: #F1DCAE; }
+.coach-tip p b { font-size: 15px; color: var(--brand-red); }
+.coach-kv { font-size: 12.5px; }
+.coach-kv th { width: 40%; font-size: 12px; }
+.coach-cheat { border-top: 1px dashed var(--line); padding-top: 10px; }
+.coach-cheat summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--ink2); }
+.coach-cheat ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.coach-cheat li {
+  display: flex; gap: 8px; padding: 5px 0;
+  font-size: 12.5px; line-height: 1.6; border-bottom: 1px dotted #EFE4D2;
+}
+.coach-cheat li:last-child { border-bottom: 0; }
+.coach-cheat li b { flex: none; width: 78px; color: var(--brand-red); font-weight: 800; }
+.coach-cheat li span { color: #3A332B; }
+
+/* ================================================================
+   首次打开：图文规则引导（五张图看懂怎么玩）
+   ================================================================ */
+.dlg.onboard { text-align: center; }
+.ob-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px; margin: 6px 0 12px;
+}
+.ob-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 16px; padding: 12px 8px; text-align: center;
+}
+.ob-ic { font-size: 30px; line-height: 1; }
+.ob-cell b { font-size: 13.5px; font-weight: 900; color: var(--ink); }
+.ob-cap { font-size: 11.5px; line-height: 1.45; color: var(--ink2); }
+.ob-tip {
+  margin: 0 0 4px; font-size: 12.5px; color: var(--ink2);
+  background: #FFF6E6; border: 1px solid #F1DCAE;
+  border-radius: 12px; padding: 8px 12px;
+}
+.dlg.onboard .dlg-actions { justify-content: center; }
+
+/* ---- 玩家面板头像（棋子立绘 + 座位号角标） ---- */
+.pc-av {
+  position: relative; flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid var(--sc, var(--brand-orange));
+  background: radial-gradient(circle at 50% 38%, #FFFDF7, #EFE6D4);
+  display: grid; place-items: center; overflow: visible;
+}
+.pc-av img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 50%; }
+.pc-av .av-no {
+  position: absolute; right: -4px; bottom: -4px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--sc, var(--brand-orange)); color: #fff;
+  font-size: 9px; font-weight: 900; font-style: normal;
+  display: grid; place-items: center;
+  border: 1.5px solid #fff;
+}
+
+/* ---- 开局设置：字段说明 ---- */
+.field .hint { margin: 7px 0 0; font-size: 12px; line-height: 1.6; color: var(--ink2); }
+
+/* ================================================================
+   存档箱（自动存档 + 命名档位的存 / 读 / 删）
+   ================================================================ */
+.sv-list { display: flex; flex-direction: column; gap: 8px; }
+.sv-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 14px;
+  background: var(--paper); border: 1px solid var(--line);
+}
+.sv-row.empty { background: #FCFAF5; border-style: dashed; }
+.sv-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sv-info b { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.sv-info span { font-size: 11.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.sv-info .sv-bad { color: #B3261E; font-weight: 700; }
+.sv-btns { flex: none; display: flex; gap: 6px; }
+.sv-btns .btn.mini { background: #fff; }
+.sv-btns .btn.mini.danger:hover { border-color: #B3261E; color: #B3261E; }
+
+/* ================================================================
+   闲置演示（attract）：长时间没人操作时，电脑自己开局走给你看
+   ================================================================ */
+.attract {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background: rgba(28, 26, 23, .30);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  cursor: pointer;
+  animation: attract-in .35s ease;
+}
+.attract[hidden] { display: none; }
+@keyframes attract-in { from { opacity: 0; } to { opacity: 1; } }
+
+.attract-card {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 24px 36px; border-radius: 24px; text-align: center;
+  max-width: 84vw;
+  background: rgba(255, 255, 255, .95);
+  border: 2px solid var(--brand-yellow);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28);
+  animation: attract-float 2.6s ease-in-out infinite;
+}
+@keyframes attract-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.attract-card b {
+  font-size: clamp(20px, 2.4vw, 30px); font-weight: 900; letter-spacing: .02em;
+  background: linear-gradient(120deg, var(--brand-orange), var(--brand-red));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.attract-card span { font-size: clamp(13px, 1.3vw, 17px); color: var(--ink2); }
+.attract-card em {
+  margin-top: 5px; font-style: normal; font-weight: 800;
+  font-size: clamp(14px, 1.4vw, 18px); color: var(--brand-red);
+  padding: 9px 20px; border-radius: 999px;
+  background: #FFF3E0; border: 1.5px dashed var(--brand-orange);
+}
+
+/* ================================================================
+   响应式：窄屏 / 手机竖屏改为单列并放开滚动
+   ================================================================ */
+@media (max-width: 1180px) {
+  body { overflow: auto; }
+  .app {
+    height: auto; min-height: 100vh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 10px; padding: 10px;
+  }
+  /* 窄屏：三栏塌成单列。棋盘必须是首屏第一件东西 ——
+     否则侧栏（季节/玩家/行情/日志）会把棋盘顶到屏幕外，
+     手指点棋盘下半边（种子格、起始格）根本落不到元素上。 */
+  .app > .topbar,
+  .app > .side-l,
+  .app > .boardwrap,
+  .app > .side-r,
+  .app > .controls { grid-column: 1; grid-row: auto; }
+  .app > .topbar    { order: 1; }
+  .app > .boardwrap { order: 2; }
+  .app > .side-l    { order: 3; }
+  .app > .side-r    { order: 4; }
+  .app > .controls  { order: 5; }
+  /* 棋盘尽量吃满屏宽（同时不让高度撑爆首屏）。
+     这里必须写死 height、不能只给 min-height：棋盘是 1:1 的，若只设 min-height，
+     棋盘高度会反过来把 .boardwrap 撑高，而 .boardwrap 又决定棋盘边长 —— 形成
+     尺寸回环：棋盘「⤢ 全屏」后放大到铺满窗口，退出全屏时容器已被撑高，
+     棋盘再也缩不回去（实测 1180 / 1024 / 844 宽视口都卡在大尺寸）。 */
+  .boardwrap { height: min(100vw, 84vh); min-height: 0; }
+  .side { min-height: auto; }
+  .panel.grow { flex: none; overflow: visible; }
+  .log-panel { flex: none; }
+  .log { max-height: 260px; }
+  /* 触屏：控制条按钮大一点、挤得下就换行；常驻屏幕底部，随时能按。
+     必须显式放开 nowrap —— 基础样式为了「整机终端 1280×672 单行」写死了
+     flex-wrap:nowrap，窄屏（≤1180px 已塌成单列）若不复位，一行里的 7～8 个
+     按钮会横向溢出（实测 600px 视口溢出 301px、文档被撑出横向滚动）。 */
+  .controls {
+    flex-wrap: wrap;
+    gap: 8px; padding: 8px 10px;
+    position: sticky; bottom: 0; z-index: 30;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .controls .btn { padding: 0 14px; font-size: 14px; }
+  .controls .btn.icon { width: 44px; padding: 0; }
+  .controls select { padding: 0 10px; }
+  /* 窄屏：开关一格一行，避免两列把长说明挤成竖排。 */
+  .switches { grid-template-columns: 1fr; }
+  .topbar .status > span { padding: 3px 9px; }
+}
+
+/* ================================================================
+   资产领先条（玩家面板顶部）：把「总资产」画成一根根横条，
+   谁最长谁最富 —— 比一串数字更让孩子一眼看懂。
+   ================================================================ */
+.lead {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 12px; padding: 7px 9px; margin-bottom: 9px;
+}
+.lead-h {
+  font-size: 11.5px; font-weight: 800; color: var(--ink2);
+  margin-bottom: 5px; letter-spacing: .02em;
+}
+.lead-row {
+  display: grid; grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center; gap: 7px;
+}
+.lead-row + .lead-row { margin-top: 4px; }
+.lead-row.dead { opacity: .5; }
+.lead-nm {
+  font-size: 11.5px; font-weight: 800; color: var(--sc, var(--ink));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lead-track { height: 9px; border-radius: 999px; background: #EDE3D2; overflow: hidden; }
+.lead-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--sc, var(--brand-orange));
+  transition: width .35s ease;
+}
+.lead-val {
+  font-size: 11.5px; font-weight: 800; color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 现金变动飘字：钱一变，数字左旁浮一个 +¥ / -¥ 再淡出 */
+.st-cash b { position: relative; }
+.cash-float {
+  position: absolute; right: calc(100% + 5px); bottom: 0;
+  font-style: normal; font-size: 11px; font-weight: 900;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: none;
+  animation: jym-cashfloat 1.1s ease-out forwards;
+}
+.cash-float.up   { color: #2E7D32; }
+.cash-float.down { color: #B3261E; }
+@keyframes jym-cashfloat {
+  0%   { opacity: 0; transform: translateY(3px); }
+  25%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+/* ================================================================
+   行棋日志：筛选工具条 + 轮次锚点
+   筛选走「容器打标记 + CSS 隐藏」——切换不重建 DOM，长局也不卡。
+   ================================================================ */
+.log-tools {
+  flex: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  margin: 0 0 6px;
+}
+.log-tools .ltool {
+  border: 1px solid var(--line); background: #fff; color: var(--ink2);
+  border-radius: 999px; padding: 2px 10px; font-size: 11.5px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.log-tools .ltool.on {
+  background: var(--brand-orange); border-color: var(--brand-orange); color: #fff;
+}
+.log-tools #logJump {
+  margin-left: auto; max-width: 42%; font-size: 11.5px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+  background: #fff; color: var(--ink2);
+}
+.log-tools #logJump:disabled { opacity: .45; }
+
+#log[data-filter="lg-buy"]  .lg:not(.lg-buy)  { display: none; }
+#log[data-filter="lg-rent"] .lg:not(.lg-rent) { display: none; }
+#log[data-filter="lg-card"] .lg:not(.lg-card) { display: none; }
+
+/* 每轮第一行吸顶：往下滚时「第 N 轮」一直压在顶上 */
+.lg-anchor { position: sticky; top: 0; z-index: 1; background: #FCFAF5; }
+
+/* ================================================================
+   成就徽章：右下角冒一枚小徽章，几秒后自动收（即时正反馈）
+   ================================================================ */
+.badge-layer {
+  position: fixed; right: 14px;
+  bottom: calc(var(--controls-h, 64px) + 14px);
+  z-index: 95;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  pointer-events: none;
+}
+.badge-pop {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 14px 9px 11px; border-radius: 16px;
+  background: linear-gradient(180deg, #FFF6E6, #FFFDF9);
+  border: 1.5px solid var(--brand-yellow);
+  box-shadow: 0 10px 26px rgba(74, 35, 17, .18);
+  opacity: 0; transform: translateY(14px) scale(.94);
+  transition: opacity .3s ease, transform .3s ease;
+  max-width: min(74vw, 320px);
+}
+.badge-pop.in { opacity: 1; transform: none; }
+.badge-pop .bd-ic { font-size: 24px; line-height: 1; flex: none; }
+.badge-pop .bd-tx { display: flex; flex-direction: column; min-width: 0; }
+.badge-pop .bd-tx b {
+  font-size: 13px; font-weight: 900; color: var(--brand-red);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.badge-pop .bd-tx span { font-size: 11.5px; color: var(--ink2); line-height: 1.4; }
+.badge-pop.global { border-color: var(--brand-orange); }
+
+/* ================================================================
+   减弱动效：系统开启「减少动态效果」时，把所有非必要动画 / 过渡停掉
+   （骰子、跳格、飘字都只做瞬变，照顾前庭敏感与低配终端）
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
